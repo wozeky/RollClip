@@ -444,6 +444,7 @@ public partial class MainWindow : Window
                     { ReplayKey: 9, Quality: RecordingQuality.Light, Motion: true } saved
                 || saved.ArchiveFolder != backupFolder || !ArchiveExistingButton.IsEnabled)
                 throw new InvalidOperationException("Recording controls did not persist or update the hotkey label.");
+            var click = System.Windows.Controls.Primitives.ButtonBase.ClickEvent;
             CopySavedClip.IsChecked = true;
             CopySavedClip.RaiseEvent(new RoutedEventArgs(click));
             ShowPanel("home");
@@ -534,7 +535,6 @@ public partial class MainWindow : Window
             VerifyIcon(MinimizeWindowIcon, "FluentMinimize");
             VerifyIcon(CloseWindowIcon, "FluentDismiss");
             VerifyIcon(MaximizeWindowIcon, "FluentMaximize");
-            var click = System.Windows.Controls.Primitives.ButtonBase.ClickEvent;
             MaximizeWindowButton.RaiseEvent(new RoutedEventArgs(click));
             if (WindowState != WindowState.Maximized)
                 throw new InvalidOperationException("The window did not maximize.");
