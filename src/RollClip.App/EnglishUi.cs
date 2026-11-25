@@ -20,7 +20,9 @@ internal static class EnglishUi
         ["Son anları tek tuşla kaydet."] = "Save the last moments with a key.",
         ["Kayıt"] = "Capture", ["Kayıt kapalı"] = "Capture off", ["Kaydı başlat"] = "Start capture",
         ["Kaydı durdur"] = "Stop capture", ["Son klibi MP4 olarak kaydet"] = "Save replay as MP4",
-        ["Paylaşım"] = "Sharing", ["Otomatik"] = "Auto", ["Yeni klipleri otomatik yükle"] = "Automatically upload new clips",
+        ["Paylaşım"] = "Sharing", ["Otomatik yükle"] = "Auto-upload",
+        ["Yeni klipleri seçili servise yükler ve MP4 pano modunu kapatır."] =
+            "Uploads new clips to the selected service and turns off MP4 clipboard mode.",
         ["MP4 içe aktar"] = "Import MP4", ["KAYIT"] = "CAPTURE", ["Kayıt kalitesi"] = "Recording quality",
         ["Yazılımsal kodlayıcı 720p30 ile sınırlıdır."] = "Software capture is limited to 720p30.",
         ["Yüksek · 1080p60"] = "High · 1080p60", ["Dengeli · 1080p30"] = "Balanced · 1080p30", ["Hafif · 720p30"] = "Light · 720p30",
