@@ -284,18 +284,42 @@ public partial class MainWindow : Window
     private void Close_Click(object sender, RoutedEventArgs args) => Close();
     private void CopySavedClip_Click(object sender, RoutedEventArgs args)
     {
-        UpdateSaveActionControls();
-    }
-
-    private void UpdateSaveActionControls()
-    {
         var copy = CopySavedClip.IsChecked == true;
-        if (copy)
-            AutoUpload.IsChecked = false;
-        AutoUpload.IsEnabled = !copy;
+        SaveClipActions(_settings.AutoUpload && !copy, copy);
     }
 
-    private void QuickSettings_Click(object sender, RoutedEventArgs args) => SaveSettings();
+    private void AutoUpload_Click(object sender, RoutedEventArgs args)
+    {
+        var upload = AutoUpload.IsChecked == true;
+        SaveClipActions(upload, _settings.CopySavedClip && !upload);
+    }
+
+    private void SaveClipActions(bool upload, bool copy)
+    {
+        try
+        {
+            var settings = _settings with { AutoUpload = upload, CopySavedClip = copy };
+            AtomicJson.Write(Path.Combine(_root, "settings.json"), settings);
+            Volatile.Write(ref _settings, settings);
+            StatusMessage.Text = upload
+                ? T("Otomatik yükleme açık.", "Automatic upload is on.")
+                : copy
+                    ? T("Kaydedilen MP4 panoya kopyalanacak.", "Saved MP4 files will be copied to the clipboard.")
+                    : T("Klipler yerel olarak kaydedilecek.", "Clips will be saved locally.");
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            StatusMessage.Text = T("Paylaşım ayarı kaydedilemedi.", "Could not save the sharing preference.") + " " + error.Message;
+        }
+        RefreshClipActionControls();
+    }
+
+    private void RefreshClipActionControls()
+    {
+        AutoUpload.IsChecked = _settings.AutoUpload && !_settings.CopySavedClip;
+        CopySavedClip.IsChecked = _settings.CopySavedClip;
+    }
+
     private void Motion_Click(object sender, RoutedEventArgs args)
     {
         if (SaveSettings()) UpdateInterfaceMotion();
@@ -420,17 +444,41 @@ public partial class MainWindow : Window
                     { ReplayKey: 9, Quality: RecordingQuality.Light, Motion: true } saved
                 || saved.ArchiveFolder != backupFolder || !ArchiveExistingButton.IsEnabled)
                 throw new InvalidOperationException("Recording controls did not persist or update the hotkey label.");
-            AutoUpload.IsChecked = true;
             CopySavedClip.IsChecked = true;
+            CopySavedClip.RaiseEvent(new RoutedEventArgs(click));
+            ShowPanel("home");
+            if (!AutoUpload.IsEnabled)
+                throw new InvalidOperationException("Clipboard mode disabled the automatic upload switch.");
+            var previousSpeedLimit = SpeedLimit.Text;
+            SpeedLimit.Text = "";
+            AutoUpload.IsChecked = true;
+            AutoUpload.RaiseEvent(new RoutedEventArgs(click));
+            if (AutoUpload.IsChecked != true || CopySavedClip.IsChecked == true ||
+                AtomicJson.Read<ClipSettings>(Path.Combine(_root, "settings.json")) is not
+                    { AutoUpload: true, CopySavedClip: false })
+                throw new InvalidOperationException("Automatic upload could not be enabled from clipboard mode.");
+            AutoUpload.IsChecked = false;
+            AutoUpload.RaiseEvent(new RoutedEventArgs(click));
+            if (AtomicJson.Read<ClipSettings>(Path.Combine(_root, "settings.json")) is not
+                { AutoUpload: false, CopySavedClip: false })
+                throw new InvalidOperationException("Automatic upload could not be disabled.");
+            AutoUpload.IsChecked = true;
+            AutoUpload.RaiseEvent(new RoutedEventArgs(click));
+            SpeedLimit.Text = previousSpeedLimit;
+            ShowPanel("settings");
+            CopySavedClip.IsChecked = true;
+            CopySavedClip.RaiseEvent(new RoutedEventArgs(click));
+            if (AutoUpload.IsChecked == true ||
+                AtomicJson.Read<ClipSettings>(Path.Combine(_root, "settings.json")) is not
+                    { CopySavedClip: true, AutoUpload: false })
+                throw new InvalidOperationException("Clipboard mode could not be enabled from automatic upload.");
             SmoothTransitions.IsChecked = false;
-            UpdateSaveActionControls();
-            if (AutoUpload.IsEnabled || !SaveSettings() ||
+            if (!SaveSettings() ||
                 AtomicJson.Read<ClipSettings>(Path.Combine(_root, "settings.json")) is not
                     { CopySavedClip: true, AutoUpload: false, SmoothTransitions: false })
                 throw new InvalidOperationException("Clip clipboard and transition settings did not persist.");
             CopySavedClip.IsChecked = false;
             SmoothTransitions.IsChecked = true;
-            UpdateSaveActionControls();
             InterfaceSounds.IsChecked = true;
             ReplayKeyChoice.SelectedIndex = 2;
             RecordingQualityChoice.SelectedIndex = 0;
@@ -591,10 +639,8 @@ public partial class MainWindow : Window
             MicrophoneGain.Value = Math.Clamp(_loadedAudio.MicrophonePercent, 0, 200);
             ProviderChoice.SelectedIndex = _settings.Provider switch { Provider.Gofile => 1, Provider.Catbox => 2, _ => 0 };
             SpeedLimit.Text = _settings.SpeedLimit.ToString(CultureInfo.InvariantCulture);
-            AutoUpload.IsChecked = _settings.AutoUpload;
-            CopySavedClip.IsChecked = _settings.CopySavedClip;
+            RefreshClipActionControls();
             SmoothTransitions.IsChecked = _settings.SmoothTransitions;
-            UpdateSaveActionControls();
             AutoCopy.IsChecked = _settings.AutoCopy;
             AutoFallback.IsChecked = _settings.AutoFallback;
             StorageLimit.Text = (_settings.QuotaBytes / 1_000_000_000d).ToString("0.###", CultureInfo.CurrentCulture);

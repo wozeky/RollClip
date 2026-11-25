@@ -242,7 +242,8 @@
         </Grid.RowDefinitions>
         <StackPanel>
          <TextBlock Text="Paylaşım" FontFamily="{StaticResource HeadingFont}" FontSize="17" FontWeight="SemiBold"/>
-         <CheckBox x:Name="AutoUpload" Content="Otomatik" Click="QuickSettings_Click" ToolTip="Yeni klipleri otomatik yükle" Margin="0,10,0,0"/>
+         <CheckBox x:Name="AutoUpload" Content="Otomatik yükle" Click="AutoUpload_Click"
+          ToolTip="Yeni klipleri seçili servise yükler ve MP4 pano modunu kapatır." Margin="0,10,0,0"/>
         </StackPanel>
 
         <Button Grid.Row="2" ToolTipService.ShowOnDisabled="True" x:Name="QuickUploadButton" Style="{StaticResource GlassButton}" Click="LatestClip_Click" IsEnabled="False" ToolTip="Son klibi kes ve paylaş" AutomationProperties.Name="Son klibi kes ve paylaş" Height="68" HorizontalAlignment="Stretch">

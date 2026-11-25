@@ -144,6 +144,6 @@ Gerçek oyunda F8, NVENC, FPS etkisi, ses senkronu ve anti-cheat davranışı fi
 
 ## Siyah krom arayüz
 
-Ana ekran, sağlanan hareketli referansın panel oranlarını kullanır. Pencereyi üstteki kapsülden seçin; soldaki **15 / 30 / 60 / 120 / 180** seçeneklerinden süreyi belirleyin. **Kayıt** kartındaki anahtarla kaydı başlatın ve **F8** ile klip alın. Alttaki kapsülden arşive ve ayarlara ulaşabilirsiniz. Paylaşım kartındaki **Otomatik** anahtarı yeni kliplerin yüklenmesini açar. Krom yükleme düğmesi arşivde seçili klibi yükler.
+Ana ekran, sağlanan hareketli referansın panel oranlarını kullanır. Pencereyi üstteki kapsülden seçin; soldaki **15 / 30 / 60 / 120 / 180** seçeneklerinden süreyi belirleyin. **Kayıt** kartındaki anahtarla kaydı başlatın ve **F8** ile klip alın. Alttaki kapsülden arşive ve ayarlara ulaşabilirsiniz. Paylaşım kartındaki **Otomatik yükle** anahtarı yeni klipleri seçili servise yükler. Bu anahtarı açmak MP4 pano modunu kapatır. Ayarlardan MP4 pano modunu açmak da otomatik yüklemeyi kapatır.
 
 Yeni kurulumlarda arka plan sabittir. **Ayarlar → Görünüm → Hareketli krom arka plan** ile hareket açılabilir. RollClip arka plandayken hareket duraklar. Kayıt başladığında veya hareket kapatıldığında video çözücüsü kapanır ve aynı krom materyalin sabit görüntüsü kullanılır. [Referans ölçümleri, uygulama ayrıntıları ve bilinen sınırlar](docs/ui-reference.md).
