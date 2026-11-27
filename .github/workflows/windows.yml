@@ -6,6 +6,7 @@ permissions:
   contents: write
 jobs:
   screenshot:
+    timeout-minutes: 5
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
