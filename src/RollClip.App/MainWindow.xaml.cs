@@ -923,6 +923,8 @@ public partial class MainWindow : Window
         BufferProgress.Value = buffered;
         BufferLabel.Text = T($"{buffered} / {seconds} sn hazır", $"{buffered} / {seconds} s ready");
         SaveReplayButton.Tag = T("Klip al", "Save clip");
+        var mic = _armed && _capture is { } session ? session.SeparateMicrophone : _settings.Microphone;
+        HomeMic.Content = mic ? T("Mikrofon açık", "Microphone on") : T("Mikrofon kapalı", "Microphone off");
         LatestHeading.Text = T("Son klip", "Latest clip");
         var status = _armed ? T("Kayıt açık", "Capture on") : T("Kayıt kapalı", "Capture off");
         if (_armed && _capture?.BufferedDuration is null)
@@ -1211,6 +1213,7 @@ public partial class MainWindow : Window
                 ArchiveStatus.Text = "";
             var languageChanged = _settings.English != settings.English;
             Volatile.Write(ref _settings, settings);
+            RefreshCaptureStatus();
             UiSounds.Enabled = settings.InterfaceSounds;
             RefreshArchiveControls();
             UpdateImportFolderLabel();
@@ -1297,9 +1300,17 @@ public partial class MainWindow : Window
         CancelUploadButton.IsEnabled = !_galleryMutating && _queue is not null;
         UploadButton.Content = clip?.State == UploadState.Uploaded ? T("Yeni bağlantı oluştur", "Create new link") :
             clip?.State is UploadState.Failed or UploadState.Cancelled ? T("Yeniden dene", "Retry") : T("Bağlantı oluştur", "Create link");
-        var latest = _store?.Snapshot().FirstOrDefault();
+        var latest = LatestLocalClip;
         QuickUploadButton.IsEnabled = latest is { LocalRemovedAt: null };
-        LatestTitle.Text = latest is null ? T("Henüz klip yok", "No clips yet") : Path.GetFileNameWithoutExtension(latest.FilePath);
+        var hasClip = latest is not null;
+        LatestPreviewButton.Visibility = QuickUploadButton.Visibility = hasClip ? Visibility.Visible : Visibility.Collapsed;
+        HomeImport.Visibility = hasClip ? Visibility.Collapsed : Visibility.Visible;
+        LatestTitle.Text = latest?.Name ?? T("Henüz klip yok", "No clips yet");
+        LatestDetail.Text = latest is null
+            ? T("İlk klibini kaydet veya bir MP4 dosyası ekle.", "Save your first clip or import an MP4 file.")
+            : string.Join(" · ", new[] { latest.Game, $"{latest.Bytes / 1_000_000d:0.#} MB" }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        LatestDuration.Text = latest?.Duration is { } length ? $"{(int)length.TotalMinutes}:{length.Seconds:00}" : "";
+
         if (_homePosterClip != latest?.Id)
         {
             _homePosterClip = latest?.Id;
@@ -1309,6 +1320,7 @@ public partial class MainWindow : Window
         }
     }
 
+    private Clip? LatestLocalClip => _store?.Snapshot().FirstOrDefault(item => item.LocalRemovedAt is null);
     private Guid? _homePosterClip;
 
     private async Task LoadHomePosterAsync(Clip clip)
@@ -1333,7 +1345,7 @@ public partial class MainWindow : Window
 
     private async Task EditLatestClipAsync()
     {
-        if (_store?.Snapshot().FirstOrDefault() is { } clip)
+        if (LatestLocalClip is { } clip)
             await EditClipAsync(clip);
         else
             StatusMessage.Text = "Henüz paylaşılacak bir klip yok.";

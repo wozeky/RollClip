@@ -8,6 +8,7 @@ internal static class EnglishUi
 {
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
+        ["Otomatik yükle"] = "Auto-upload", ["Ses ayarları"] = "Audio settings",
         ["Ana ekran"] = "Home", ["Ana ekrana dön"] = "Back to home",
         ["Ayarlar"] = "Settings", ["Ayarları kapat"] = "Close settings", ["Ayarları kaydet"] = "Save settings",
         ["Klip arşivi"] = "Clip library", ["Arşivi kapat"] = "Close library", ["Klip klasörü"] = "Clip folder",
