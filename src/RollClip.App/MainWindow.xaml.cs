@@ -211,7 +211,7 @@ public partial class MainWindow : Window
         LibraryNav.Style = (Style)FindResource(target == LibraryPanel ? "NeonButton" : "GlassButton");
         SettingsNav.Style = (Style)FindResource(target == SettingsPanel ? "NeonButton" : "GlassButton");
         if (target == HomePanel)
-            CenterReplayLength();
+            RefreshCaptureStatus();
         if (!CanAnimateInterface || !_settings.SmoothTransitions)
             return;
 
@@ -256,18 +256,9 @@ public partial class MainWindow : Window
     }
 
     private void ReplayLength_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs args)
-        => CenterReplayLength();
-
-    private void CenterReplayLength()
-    {
-        Dispatcher.InvokeAsync(() =>
         {
-            if (!ReplayLength.IsVisible || ReplayLength.SelectedIndex < 0)
-                return;
-
-            if (ReplayLength.Template.FindName("DurationScroll", ReplayLength) is System.Windows.Controls.ScrollViewer scroll)
-                scroll.ScrollToVerticalOffset(36 * ReplayLength.SelectedIndex);
-        }, System.Windows.Threading.DispatcherPriority.Loaded);
+        if (IsLoaded && BufferProgress is not null)
+            RefreshCaptureStatus();
     }
 
     private void Home_Click(object sender, RoutedEventArgs args) => ShowPanel("home");
@@ -925,9 +916,19 @@ public partial class MainWindow : Window
 
     private void RefreshCaptureStatus()
     {
-        var status = !_armed ? T("Kayıt kapalı", "Capture off") : _capture?.BufferedDuration is { } duration
-            ? T($"Hazır · Tampon: {Math.Floor(duration.TotalSeconds):0} sn", $"Ready · Buffer: {Math.Floor(duration.TotalSeconds):0} s")
-            : T("Yeni görüntü gelmiyor", "No new frames");
+        var seconds = ReplayLength.SelectedItem as int? ?? ReplayDurations.Default;
+        var buffered = _armed ? Math.Clamp(Math.Floor((_capture?.BufferedDuration)?.TotalSeconds ?? 0), 0, seconds) : 0;
+        DurationHeading.Text = T($"Son {seconds} saniye", $"Last {seconds} seconds");
+        BufferProgress.Maximum = seconds;
+        BufferProgress.Value = buffered;
+        BufferLabel.Text = T($"{buffered} / {seconds} sn hazır", $"{buffered} / {seconds} s ready");
+        SaveReplayButton.Tag = T("Klip al", "Save clip");
+        var mic = _armed && _capture is { } session ? session.SeparateMicrophone : _settings.Microphone;
+        HomeMic.Content = mic ? T("Mikrofon açık", "Microphone on") : T("Mikrofon kapalı", "Microphone off");
+        LatestHeading.Text = T("Son klip", "Latest clip");
+        var status = _armed ? T("Kayıt açık", "Capture on") : T("Kayıt kapalı", "Capture off");
+        if (_armed && _capture?.BufferedDuration is null)
+            status = T("Yeni görüntü gelmiyor", "No new frames");
         if (_armed && !_hotkeyRegistered)
             status += T($" · {ReplayKeyLabel} kullanılamıyor", $" · {ReplayKeyLabel} unavailable");
         if (CaptureStatus.Text != status)
@@ -1212,6 +1213,7 @@ public partial class MainWindow : Window
                 ArchiveStatus.Text = "";
             var languageChanged = _settings.English != settings.English;
             Volatile.Write(ref _settings, settings);
+            RefreshCaptureStatus();
             UiSounds.Enabled = settings.InterfaceSounds;
             RefreshArchiveControls();
             UpdateImportFolderLabel();
@@ -1298,7 +1300,39 @@ public partial class MainWindow : Window
         CancelUploadButton.IsEnabled = !_galleryMutating && _queue is not null;
         UploadButton.Content = clip?.State == UploadState.Uploaded ? T("Yeni bağlantı oluştur", "Create new link") :
             clip?.State is UploadState.Failed or UploadState.Cancelled ? T("Yeniden dene", "Retry") : T("Bağlantı oluştur", "Create link");
-        QuickUploadButton.IsEnabled = _galleryCount > 0;
+        var latest = LatestLocalClip;
+        QuickUploadButton.IsEnabled = latest is { LocalRemovedAt: null };
+        var hasClip = latest is not null;
+        LatestPreviewButton.Visibility = QuickUploadButton.Visibility = hasClip ? Visibility.Visible : Visibility.Collapsed;
+        HomeImport.Visibility = hasClip ? Visibility.Collapsed : Visibility.Visible;
+        LatestTitle.Text = latest?.Name ?? T("Henüz klip yok", "No clips yet");
+        LatestDetail.Text = latest is null
+            ? T("İlk klibini kaydet veya bir MP4 dosyası ekle.", "Save your first clip or import an MP4 file.")
+            : string.Join(" · ", new[] { latest.Game, $"{latest.Bytes / 1_000_000d:0.#} MB" }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        LatestDuration.Text = latest?.Duration is { } length ? $"{(int)length.TotalMinutes}:{length.Seconds:00}" : "";
+
+        if (_homePosterClip != latest?.Id)
+        {
+            _homePosterClip = latest?.Id;
+            LatestPoster.Source = null;
+            if (latest is { LocalRemovedAt: null })
+                _ = LoadHomePosterAsync(latest);
+        }
+    }
+
+    private Clip? LatestLocalClip => _store?.Snapshot().FirstOrDefault(item => item.LocalRemovedAt is null);
+    private Guid? _homePosterClip;
+
+    private async Task LoadHomePosterAsync(Clip clip)
+    {
+        try
+        {
+            var poster = await VideoThumbnail.LoadAsync(clip, Path.Combine(_root, "thumbnails"), _shutdown.Token);
+            if (_homePosterClip == clip.Id)
+                LatestPoster.Source = poster;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { System.Diagnostics.Trace.WriteLine(error); }
     }
 
     private async void Open_Click(object sender, RoutedEventArgs args)
@@ -1311,7 +1345,7 @@ public partial class MainWindow : Window
 
     private async Task EditLatestClipAsync()
     {
-        if (_store?.Snapshot().FirstOrDefault() is { } clip)
+        if (LatestLocalClip is { } clip)
             await EditClipAsync(clip);
         else
             StatusMessage.Text = "Henüz paylaşılacak bir klip yok.";
