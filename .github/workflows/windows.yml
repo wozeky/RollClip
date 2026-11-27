@@ -1,11 +1,14 @@
 name: Render RollClip home on Windows
 on:
+  pull_request:
+    branches: [ui/replay-dashboard]
   push:
     branches: [preview/dashboard-windows]
 permissions:
   contents: write
 jobs:
   screenshot:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     timeout-minutes: 5
     runs-on: windows-2025
     steps:
