@@ -22,7 +22,7 @@ jobs:
             choco install ffmpeg -y --no-progress
             $exe = (Get-ChildItem C:/ProgramData/chocolatey/lib/ffmpeg -Filter ffmpeg.exe -Recurse | Select-Object -First 1).FullName
           }
-          if (!$exe) { throw 'FFmpeg not available' }
+          if (!$exe) { throw 'FFmpeg not available for thumbnail verification' }
           New-Item build/ffmpeg/bin -Type Directory -Force
           Copy-Item $exe build/ffmpeg/bin/ffmpeg.exe
           $dir = Join-Path $env:RUNNER_TEMP 'rollclip-replay'
